@@ -1,65 +1,116 @@
-osx_image: xcode8.3
-
 sudo: false
-
 language: node_js
-node_js: "8"
-
-env:
-  global:
-  - ELECTRON_CACHE=$HOME/.cache/electron
-  - ELECTRON_BUILDER_CACHE=$HOME/.cache/electron-builder
-  - ANDROID_HOME=$HOME/android-sdk
-
-os:
-- osx
+node_js:
+  - "8"
 
 cache:
+  yarn: true
   directories:
+  - dist/cache
   - node_modules
-  - $HOME/.cache/electron
-  - $HOME/.cache/electron-builder
   - $HOME/.npm/_prebuilds
   - $HOME/.cache/yarn
-  - $HOME/android-sdk-dl
-  - $HOME/android-sdk
-before_install:
-- mkdir -p /tmp/git-lfs && curl -L https://github.com/github/git-lfs/releases/download/v2.2.0/git-lfs-$([ "$TRAVIS_OS_NAME" == "linux" ] && echo "linux" || echo "darwin")-amd64-2.2.0.tar.gz | tar -xz -C /tmp/git-lfs --strip-components 1 && /tmp/git-lfs/git-lfs pull
-- curl -L https://yarnpkg.com/latest.tar.gz | tar xvz
-- export PATH="$HOME/.yarn/bin:$PATH"
-# Download and unzip the Android SDK tools (if not already there thanks to the cache mechanism)
-# Latest version available here: https://developer.android.com/studio/#command-tools
-- if test ! -e $HOME/android-sdk-dl/sdk-tools.zip ; then curl https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip > $HOME/android-sdk-dl/sdk-tools.zip ; fi
-- unzip -qq -n $HOME/android-sdk-dl/sdk-tools.zip -d $HOME/android-sdk
-
-# Install or update Android SDK components (will not do anything if already up to date thanks to the cache mechanism)
-- echo y | $HOME/android-sdk/tools/bin/sdkmanager 'tools' > /dev/null
-- echo y | $HOME/android-sdk/tools/bin/sdkmanager 'platform-tools' > /dev/null
-- echo y | $HOME/android-sdk/tools/bin/sdkmanager 'build-tools;27.0.3' > /dev/null
-- echo y | $HOME/android-sdk/tools/bin/sdkmanager 'platforms;android-27' > /dev/null
-- echo y | $HOME/android-sdk/tools/bin/sdkmanager 'extras;google;m2repository' > /dev/null
-
-install:
-- yarn
-- yarn global add cordova
-
-script:
-- yarn build
-
-before_cache:
-- rm -rf $HOME/.cache/electron-builder/wine
 
 before_deploy:
 # Set up git user name and tag this commit
 - git config --local user.name "Michael J Feher"
 - git config --local user.email "github@phearzero.com"
 
-deploy:
-  skip_cleanup: true
-  provider: releases
-  api_key:
-    secure: J3RkERAS4zgRE0I7d5PwhZU+aiNzqKpI43top1Zu1BDLbnxcR1F8H+FLvXwG+C4rMkxg5S5K8sZtstXXyK1tpF0ixlVUx+YWlkwz/dM02iTVFSqf4uuv6akztKDO/uRPNk1EtibVpu9IbV/KcvHLuZsHkXmW5swl19MM8+shZHMizkGGfM0u1UZPAni5Cr2r+wDOUdU1km8lHHPAI9E+yFlVNUdOWYG3hhwf7QGnDY+EoaUUbSXyNwE3Hd2epa5FiGWgC8XQBzGsdg4RdYBjWbeNmpA8jCxKQr6j3eFEyTeatlUW3aUt8DcPmuZT6iD+fME2PlGxbE06Esq7tSXKcuN2MaQxWGgGQ17eXUTPB68maCeFtHxLN0YrsL1FovvPT86AoqDVw3ohkcL1miqR4eW/Ewl6U8uM6/Gc4nAnnm0+bBrcgy5/3Id62OjDuBfGC4EYYHyEzaPvW9+KpbBsl6p2qjmXHREn++Jh3qrGQGLwbGY0wEA1HOYIPwI14Ag+1yEqCiNe8neZVAJow264Khk4U3DoH/2nmk6fmalgDCdC10jcg8Ob5RTdX70/VYly0PLKXaPNeTtw9HSg3f0tG8HfiQm5E38ZVyFZtKm2bjk6SslOZWDiVjXiMncVGEPBrMQudQn6HkW4tyUeLBV2hHAVW2Y6WWyUVhiDNpZOT7o=
-  file_glob: true
-  file: dist/*.zip
-  on:
-    branches: master
+jobs:
+  include:
+  - stage: "Tests"
+    name: "Unit Tests"
+    script: npm test
+    before_install:
+    - curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version 1.10.1
+    - export PATH="$HOME/.yarn/bin:$PATH"
+    install:
+    - yarn
+  - name: "Integration Tests"
+    script: echo Ok
+    before_install:
+    - curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version 1.10.1
+    - export PATH="$HOME/.yarn/bin:$PATH"
+    install:
+    - yarn
+  - stage: "Build-Sanity"
+    name: "Single Page, Server Side Renderer and Progressive App"
+    before_install:
+    - curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version 1.10.1
+    - export PATH="$HOME/.yarn/bin:$PATH"
+    install:
+      - yarn
+    after_success:
+      - zip -r dist/cache/spa-mat.zip dist/spa-mat
+      - zip -r dist/cache/spa-ios.zip dist/spa-ios
+      - zip -r dist/cache/ssr-mat.zip dist/ssr-mat
+      - zip -r dist/cache/ssr-ios.zip dist/ssr-ios
+    script:
+      - yarn build -t mat
+      - yarn build -t ios
+      - yarn build-ssr
+      - yarn build-pwa
+  - name: "OSX, Windows, iOS, Android and Linux"
+    os: osx
+    osx_image: xcode8.3
+    before_cache:
+      - rm -rf $HOME/.cache/electron-builder/wine
+      - for i in dist/electron-mat/*/; do electron-installer-zip "$i" "${i%/}-MaterialDesign.zip"; done
+      - for i in dist/electron-ios/*/; do electron-installer-zip "$i" "${i%/}-iOS.zip"; done
+      - mkdir -p dist/cache
+      - rm -rf dist/cache/Barnstorm*.zip
+      - cp dist/electron-mat/Barnstorm*.zip ./dist/cache
+      - cp dist/electron-ios/Barnstorm*.zip ./dist/cache
+    cache:
+      directories:
+        - src-electron/node_modules
+        - $HOME/.cache/electron
+        - $HOME/.cache/electron-builder
+        - $HOME/Library/Caches/Homebrew
+    env:
+      - HOMEBREW_NO_AUTO_UPDATE=1
+      - ELECTRON_CACHE=$HOME/.cache/electron
+      - ELECTRON_BUILDER_CACHE=$HOME/.cache/electron-builder
+      - USE_SDK_WRAPPER=true
+      - ANDROID_HOME=/usr/local/share/android-sdk
+      - ANDROID_NDK_HOME=/usr/local/share/android-ndk
+      - ANDROID_SDK_ROOT=/usr/local/share/android-sdk
+      - WINEDLLOVERRIDES="mscoree,mshtml="
+      - WINEDEBUG="-all"
+    before_install:
+      - curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version 1.10.1
+      - export PATH="$HOME/.yarn/bin:$PATH"
+      - npm install wine-darwin@1.9.17-1
+      - yarn wine hostname
+      - brew install ant gradle
+      - brew cask install android-sdk android-ndk
+      - android update sdk > /dev/null
+      - sdkmanager "platform-tools" "platforms;android-27" > /dev/null
+      - npm install -g electron-installer-zip cordova ios-deploy
+      - cd src-cordova
+      - npm install
+      - cordova platform add android
+      - cordova platform add ios
+      - cordova requirements
+      - cd ../
+    install:
+    - yarn
+    script:
+      - yarn build-mobile
+      - yarn build-desktop
+    on:
+      branches:
+        - develop
+        - master
+  - stage: "Deploy"
+    name: "Deploy to Github Releases"
+    script: echo "Deploying to GitHub releases ..."
+    deploy:
+      skip_cleanup: true
+      provider: releases
+      api_key:
+        secure: J3RkERAS4zgRE0I7d5PwhZU+aiNzqKpI43top1Zu1BDLbnxcR1F8H+FLvXwG+C4rMkxg5S5K8sZtstXXyK1tpF0ixlVUx+YWlkwz/dM02iTVFSqf4uuv6akztKDO/uRPNk1EtibVpu9IbV/KcvHLuZsHkXmW5swl19MM8+shZHMizkGGfM0u1UZPAni5Cr2r+wDOUdU1km8lHHPAI9E+yFlVNUdOWYG3hhwf7QGnDY+EoaUUbSXyNwE3Hd2epa5FiGWgC8XQBzGsdg4RdYBjWbeNmpA8jCxKQr6j3eFEyTeatlUW3aUt8DcPmuZT6iD+fME2PlGxbE06Esq7tSXKcuN2MaQxWGgGQ17eXUTPB68maCeFtHxLN0YrsL1FovvPT86AoqDVw3ohkcL1miqR4eW/Ewl6U8uM6/Gc4nAnnm0+bBrcgy5/3Id62OjDuBfGC4EYYHyEzaPvW9+KpbBsl6p2qjmXHREn++Jh3qrGQGLwbGY0wEA1HOYIPwI14Ag+1yEqCiNe8neZVAJow264Khk4U3DoH/2nmk6fmalgDCdC10jcg8Ob5RTdX70/VYly0PLKXaPNeTtw9HSg3f0tG8HfiQm5E38ZVyFZtKm2bjk6SslOZWDiVjXiMncVGEPBrMQudQn6HkW4tyUeLBV2hHAVW2Y6WWyUVhiDNpZOT7o=
+      file_glob: true
+      file: dist/cache/*.zip
+      on:
+        branches: master

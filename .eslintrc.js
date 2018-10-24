@@ -19,6 +19,12 @@ module.exports = {
     'vue'
   ],
   globals: {
+    'Cypress': true,
+    'it': true,
+    'beforeEach': true,
+    'describe': true,// Testing
+    'expect': true, // Testing
+    'cy': true, // Testing
     'ga': true, // Google Analytics
     'cordova': true,
     '__statics': true

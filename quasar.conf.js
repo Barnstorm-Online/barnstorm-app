@@ -122,13 +122,14 @@ module.exports = function (ctx) {
       // id: 'org.cordova.quasar.app'
     },
     electron: {
-      bundler: 'builder', // or 'packager'
+      bundler: 'packager', // or 'packager'
       extendWebpack (cfg) {
         // do something with Electron process Webpack cfg
       },
       packager: {
         // https://github.com/electron-userland/electron-packager/blob/master/docs/api.md#options
-        all: true
+        platform: ['linux', 'win32', 'darwin']
+        // arch: ['ia32', 'x64']
         // OS X / Mac App Store
         // appBundleId: '',
         // appCategoryType: '',
