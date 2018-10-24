@@ -1,0 +1,3 @@
+[submodule "src-cordova"]
+	path = src-cordova
+	url = https://github.com/Barnstorm-Online/Mobile.git
