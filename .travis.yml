@@ -100,6 +100,7 @@ jobs:
   - stage: Deploy
     name: Deploy to Github Releases
     script: echo "Deploying to GitHub releases ..."
+    if: branch = master
     deploy:
       skip_cleanup: true
       provider: releases
