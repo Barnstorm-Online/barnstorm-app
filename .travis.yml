@@ -1,115 +1,110 @@
 sudo: false
 language: node_js
 node_js:
-  - "8"
-
+- '8'
 cache:
   yarn: true
   directories:
   - dist/cache
   - node_modules
-  - $HOME/.npm/_prebuilds
-  - $HOME/.cache/yarn
-
+  - "$HOME/.npm/_prebuilds"
+  - "$HOME/.cache/yarn"
 before_deploy:
-# Set up git user name and tag this commit
 - git config --local user.name "Michael J Feher"
 - git config --local user.email "github@phearzero.com"
-
 jobs:
   include:
-  - stage: "Tests"
-    name: "Unit Tests"
+  - stage: Tests
+    name: Unit Tests
     script: npm test
     before_install:
     - curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version 1.10.1
     - export PATH="$HOME/.yarn/bin:$PATH"
     install:
     - yarn
-  - name: "Integration Tests"
+  - name: Integration Tests
     script: echo Ok
     before_install:
     - curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version 1.10.1
     - export PATH="$HOME/.yarn/bin:$PATH"
     install:
     - yarn
-  - stage: "Build-Sanity"
-    name: "Single Page, Server Side Renderer and Progressive App"
+  - stage: Build-Sanity
+    name: Single Page, Server Side Renderer and Progressive App
     before_install:
     - curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version 1.10.1
     - export PATH="$HOME/.yarn/bin:$PATH"
     install:
-      - yarn
+    - yarn
     after_success:
-      - zip -r dist/cache/spa-mat.zip dist/spa-mat
-      - zip -r dist/cache/spa-ios.zip dist/spa-ios
-      - zip -r dist/cache/ssr-mat.zip dist/ssr-mat
-      - zip -r dist/cache/ssr-ios.zip dist/ssr-ios
+    - zip -r dist/cache/spa-mat.zip dist/spa-mat
+    - zip -r dist/cache/spa-ios.zip dist/spa-ios
+    - zip -r dist/cache/ssr-mat.zip dist/ssr-mat
+    - zip -r dist/cache/ssr-ios.zip dist/ssr-ios
     script:
-      - yarn build -t mat
-      - yarn build -t ios
-      - yarn build-ssr
-      - yarn build-pwa
-  - name: "OSX, Windows, iOS, Android and Linux"
+    - yarn build -t mat
+    - yarn build -t ios
+    - yarn build-ssr
+    - yarn build-pwa
+  - name: OSX, Windows, iOS, Android and Linux
     os: osx
     osx_image: xcode8.3
     before_cache:
-      - rm -rf $HOME/.cache/electron-builder/wine
-      - for i in dist/electron-mat/*/; do electron-installer-zip "$i" "${i%/}-MaterialDesign.zip"; done
-      - for i in dist/electron-ios/*/; do electron-installer-zip "$i" "${i%/}-iOS.zip"; done
-      - mkdir -p dist/cache
-      - rm -rf dist/cache/Barnstorm*.zip
-      - cp dist/electron-mat/Barnstorm*.zip ./dist/cache
-      - cp dist/electron-ios/Barnstorm*.zip ./dist/cache
+    - rm -rf $HOME/.cache/electron-builder/wine
+    - for i in dist/electron-mat/*/; do electron-installer-zip "$i" "${i%/}-MaterialDesign.zip";
+      done
+    - for i in dist/electron-ios/*/; do electron-installer-zip "$i" "${i%/}-iOS.zip";
+      done
+    - mkdir -p dist/cache
+    - rm -rf dist/cache/Barnstorm*.zip
+    - cp dist/electron-mat/Barnstorm*.zip ./dist/cache
+    - cp dist/electron-ios/Barnstorm*.zip ./dist/cache
     cache:
       directories:
-        - src-electron/node_modules
-        - $HOME/.cache/electron
-        - $HOME/.cache/electron-builder
-        - $HOME/Library/Caches/Homebrew
+      - src-electron/node_modules
+      - "$HOME/.cache/electron"
+      - "$HOME/.cache/electron-builder"
+      - "$HOME/Library/Caches/Homebrew"
     env:
-      - HOMEBREW_NO_AUTO_UPDATE=1
-      - ELECTRON_CACHE=$HOME/.cache/electron
-      - ELECTRON_BUILDER_CACHE=$HOME/.cache/electron-builder
-      - USE_SDK_WRAPPER=true
-      - ANDROID_HOME=/usr/local/share/android-sdk
-      - ANDROID_NDK_HOME=/usr/local/share/android-ndk
-      - ANDROID_SDK_ROOT=/usr/local/share/android-sdk
-      - WINEDLLOVERRIDES="mscoree,mshtml="
-      - WINEDEBUG="-all"
+    - HOMEBREW_NO_AUTO_UPDATE=1
+    - ELECTRON_CACHE=$HOME/.cache/electron
+    - ELECTRON_BUILDER_CACHE=$HOME/.cache/electron-builder
+    - USE_SDK_WRAPPER=true
+    - ANDROID_HOME=/usr/local/share/android-sdk
+    - ANDROID_NDK_HOME=/usr/local/share/android-ndk
+    - ANDROID_SDK_ROOT=/usr/local/share/android-sdk
+    - WINEDLLOVERRIDES="mscoree,mshtml="
+    - WINEDEBUG="-all"
     before_install:
-      - curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version 1.10.1
-      - export PATH="$HOME/.yarn/bin:$PATH"
-      - npm install wine-darwin@1.9.17-1
-      - yarn wine hostname
-      - brew install ant gradle
-      - brew cask install android-sdk android-ndk
-      - android update sdk > /dev/null
-      - sdkmanager "platform-tools" "platforms;android-27" > /dev/null
-      - npm install -g electron-installer-zip cordova ios-deploy
-      - cd src-cordova
-      - npm install
-      - cordova platform add android
-      - cordova platform add ios
-      - cordova requirements
-      - cd ../
+    - curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version 1.10.1
+    - export PATH="$HOME/.yarn/bin:$PATH"
+    - npm install wine-darwin@1.9.17-1
+    - yarn wine hostname
+    - brew install ant gradle
+    - brew cask install android-sdk android-ndk
+    - android update sdk > /dev/null
+    - sdkmanager "platform-tools" "platforms;android-27" > /dev/null
+    - npm install -g electron-installer-zip cordova ios-deploy
+    - cd src-cordova
+    - npm install
+    - cordova platform add android
+    - cordova platform add ios
+    - cordova requirements
+    - cd ../
     install:
     - yarn
     script:
-      - yarn build-mobile
-      - yarn build-desktop
-    on:
-      branches:
-        - develop
-        - master
-  - stage: "Deploy"
-    name: "Deploy to Github Releases"
+    - yarn build-mobile
+    - yarn build-desktop
+    if: branch = master
+  - stage: Deploy
+    name: Deploy to Github Releases
     script: echo "Deploying to GitHub releases ..."
     deploy:
       skip_cleanup: true
       provider: releases
       api_key:
-        secure: J3RkERAS4zgRE0I7d5PwhZU+aiNzqKpI43top1Zu1BDLbnxcR1F8H+FLvXwG+C4rMkxg5S5K8sZtstXXyK1tpF0ixlVUx+YWlkwz/dM02iTVFSqf4uuv6akztKDO/uRPNk1EtibVpu9IbV/KcvHLuZsHkXmW5swl19MM8+shZHMizkGGfM0u1UZPAni5Cr2r+wDOUdU1km8lHHPAI9E+yFlVNUdOWYG3hhwf7QGnDY+EoaUUbSXyNwE3Hd2epa5FiGWgC8XQBzGsdg4RdYBjWbeNmpA8jCxKQr6j3eFEyTeatlUW3aUt8DcPmuZT6iD+fME2PlGxbE06Esq7tSXKcuN2MaQxWGgGQ17eXUTPB68maCeFtHxLN0YrsL1FovvPT86AoqDVw3ohkcL1miqR4eW/Ewl6U8uM6/Gc4nAnnm0+bBrcgy5/3Id62OjDuBfGC4EYYHyEzaPvW9+KpbBsl6p2qjmXHREn++Jh3qrGQGLwbGY0wEA1HOYIPwI14Ag+1yEqCiNe8neZVAJow264Khk4U3DoH/2nmk6fmalgDCdC10jcg8Ob5RTdX70/VYly0PLKXaPNeTtw9HSg3f0tG8HfiQm5E38ZVyFZtKm2bjk6SslOZWDiVjXiMncVGEPBrMQudQn6HkW4tyUeLBV2hHAVW2Y6WWyUVhiDNpZOT7o=
+        secure: IsRZXD/d/LK/4AcG+GNgg+3bvn29jklYEyatYW7J+amHyC9p+p1wOaQTczj78k7hYBcsQAosziByvUOD7/xtVfiqukoLLo8o7I7RGaAMoOLaQEi/iYgCNRwrU+/al/q7dImZoDQD34ED1k2tyx2UubkwnGfCRsbjisKmwWQVHsfCnMBXlx5i62jEh3zZvxIp2KwXLuH6B1hx95Ryy5lmR8+reV5mySeRVC5QcoQgTBmnOraztSEcFq6AtpQxGaFuj+rSrqYdOYS8LLsLd4jFSUzN7Lfogi3wE20khiAyULIyGTG7wJP5BpoP1eLqdGBmPUmFsgD7662WzOfJtn82UpWs68F3F7WNocUXkzFuwrpDNCcwTSXwON/bhL1Gh2g/IhJBKFqFVY8vq0io2pC+38lfegk8pq8HLAybkSWTlcwiai5Mhy5CpMKUevV5C9Ws401zs5o/nVgLrmqC9f8NbikK0LoE6f7l95/QtVt6Q4qYYxrhYQ8Jn31Mprbyz9mAPFyrDwO2gIHbZlTKq2ZUhr2vfV45Bd5TxfFLiyUW40ocrYQWajbXuyNkAsCGr5sQuWdXmqs7jJGKu0g5fz5IGNQ7FqT/9HTQ8e3B8Aw+Z/bSAmsWveJ67HnjCI3mQ9POGGDDcMxE9a9flTns/svrlED7ZXsbJTRNrdXHJvuArjQ=
       file_glob: true
       file: dist/cache/*.zip
       on:
