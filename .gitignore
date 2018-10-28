@@ -72,6 +72,7 @@ yarn-error.log
 *.ntvs*
 *.njsproj
 *.sln
+*.iml
 
 # Quasar Framework
 .quasar
