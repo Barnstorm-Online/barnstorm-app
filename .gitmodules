@@ -1,3 +1,6 @@
 [submodule "src-cordova"]
 	path = src-cordova
 	url = https://github.com/Barnstorm-Online/Mobile.git
+[submodule "src-electron"]
+	path = src-electron
+	url = https://github.com/Barnstorm-Online/Desktop.git
