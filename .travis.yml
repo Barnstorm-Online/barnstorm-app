@@ -17,12 +17,20 @@ before_deploy:
 - zip -r ~/dist/cache/ssr-mat.zip dist/ssr-mat
 - zip -r ~/dist/cache/ssr-ios.zip dist/ssr-ios
 - ./bin/build_hook
-
+env:
+  global:
+  - CC_TEST_REPORTER_ID=c0a3f723a87374b1af228112447f1058cf3537f0a468f56ca7263141d08a4ca4
 jobs:
   include:
   - stage: Tests
     name: Unit Tests
+    before_script:
+    - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+    - chmod +x ./cc-test-reporter
+    - ./cc-test-reporter before-build
     script: npm test
+    after_script:
+    - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
     before_install:
     - curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version 1.10.1
     - export PATH="$HOME/.yarn/bin:$PATH"
