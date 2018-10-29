@@ -5,13 +5,19 @@ node_js:
 cache:
   yarn: true
   directories:
-  - dist/cache
+  - "$HOME/dist/cache"
   - node_modules
   - "$HOME/.npm/_prebuilds"
   - "$HOME/.cache/yarn"
 before_deploy:
 - git config --local user.name "Michael J Feher"
 - git config --local user.email "github@phearzero.com"
+- zip -r ~/dist/cache/spa-mat.zip dist/spa-mat
+- zip -r ~/dist/cache/spa-ios.zip dist/spa-ios
+- zip -r ~/dist/cache/ssr-mat.zip dist/ssr-mat
+- zip -r ~/dist/cache/ssr-ios.zip dist/ssr-ios
+- ./bin/build_hook
+
 jobs:
   include:
   - stage: Tests
@@ -36,67 +42,11 @@ jobs:
     - export PATH="$HOME/.yarn/bin:$PATH"
     install:
     - yarn
-    after_success:
-    - zip -r dist/cache/spa-mat.zip dist/spa-mat
-    - zip -r dist/cache/spa-ios.zip dist/spa-ios
-    - zip -r dist/cache/ssr-mat.zip dist/ssr-mat
-    - zip -r dist/cache/ssr-ios.zip dist/ssr-ios
     script:
     - yarn build -t mat
     - yarn build -t ios
     - yarn build-ssr
     - yarn build-pwa
-  - name: OSX, Windows, iOS, Android and Linux
-    os: osx
-    osx_image: xcode8.3
-    before_cache:
-    - rm -rf $HOME/.cache/electron-builder/wine
-    - for i in dist/electron-mat/*/; do electron-installer-zip "$i" "${i%/}-MaterialDesign.zip";
-      done
-    - for i in dist/electron-ios/*/; do electron-installer-zip "$i" "${i%/}-iOS.zip";
-      done
-    - mkdir -p dist/cache
-    - rm -rf dist/cache/Barnstorm*.zip
-    - cp dist/electron-mat/Barnstorm*.zip ./dist/cache
-    - cp dist/electron-ios/Barnstorm*.zip ./dist/cache
-    cache:
-      directories:
-      - src-electron/node_modules
-      - "$HOME/.cache/electron"
-      - "$HOME/.cache/electron-builder"
-      - "$HOME/Library/Caches/Homebrew"
-    env:
-    - HOMEBREW_NO_AUTO_UPDATE=1
-    - ELECTRON_CACHE=$HOME/.cache/electron
-    - ELECTRON_BUILDER_CACHE=$HOME/.cache/electron-builder
-    - USE_SDK_WRAPPER=true
-    - ANDROID_HOME=/usr/local/share/android-sdk
-    - ANDROID_NDK_HOME=/usr/local/share/android-ndk
-    - ANDROID_SDK_ROOT=/usr/local/share/android-sdk
-    - WINEDLLOVERRIDES="mscoree,mshtml="
-    - WINEDEBUG="-all"
-    before_install:
-    - curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version 1.10.1
-    - export PATH="$HOME/.yarn/bin:$PATH"
-    - npm install wine-darwin@1.9.17-1
-    - yarn wine hostname
-    - brew install ant gradle
-    - brew cask install android-sdk android-ndk
-    - android update sdk > /dev/null
-    - sdkmanager "platform-tools" "platforms;android-27" > /dev/null
-    - npm install -g electron-installer-zip cordova ios-deploy
-    - cd src-cordova
-    - npm install
-    - cordova platform add android
-    - cordova platform add ios
-    - cordova requirements
-    - cd ../
-    install:
-    - yarn
-    script:
-    - yarn build-mobile
-    - yarn build-desktop
-    if: branch = master
   - stage: Deploy
     name: Deploy to Github Releases
     script: echo "Deploying to GitHub releases ..."
@@ -107,6 +57,6 @@ jobs:
       api_key:
         secure: IsRZXD/d/LK/4AcG+GNgg+3bvn29jklYEyatYW7J+amHyC9p+p1wOaQTczj78k7hYBcsQAosziByvUOD7/xtVfiqukoLLo8o7I7RGaAMoOLaQEi/iYgCNRwrU+/al/q7dImZoDQD34ED1k2tyx2UubkwnGfCRsbjisKmwWQVHsfCnMBXlx5i62jEh3zZvxIp2KwXLuH6B1hx95Ryy5lmR8+reV5mySeRVC5QcoQgTBmnOraztSEcFq6AtpQxGaFuj+rSrqYdOYS8LLsLd4jFSUzN7Lfogi3wE20khiAyULIyGTG7wJP5BpoP1eLqdGBmPUmFsgD7662WzOfJtn82UpWs68F3F7WNocUXkzFuwrpDNCcwTSXwON/bhL1Gh2g/IhJBKFqFVY8vq0io2pC+38lfegk8pq8HLAybkSWTlcwiai5Mhy5CpMKUevV5C9Ws401zs5o/nVgLrmqC9f8NbikK0LoE6f7l95/QtVt6Q4qYYxrhYQ8Jn31Mprbyz9mAPFyrDwO2gIHbZlTKq2ZUhr2vfV45Bd5TxfFLiyUW40ocrYQWajbXuyNkAsCGr5sQuWdXmqs7jJGKu0g5fz5IGNQ7FqT/9HTQ8e3B8Aw+Z/bSAmsWveJ67HnjCI3mQ9POGGDDcMxE9a9flTns/svrlED7ZXsbJTRNrdXHJvuArjQ=
       file_glob: true
-      file: dist/cache/*.zip
+      file: ~/dist/cache/*.zip
       on:
         branches: master

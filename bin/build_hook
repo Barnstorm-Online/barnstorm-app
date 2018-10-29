@@ -1,0 +1,40 @@
+#!/usr/bin/env node
+"use strict";
+
+const shell = require('shelljs'),
+  path = require('path'),
+  got = require('got'),
+  pkg = require('../package.json');
+
+const headers = {
+  "Content-Type": "application/json",
+  "Accept": "application/json",
+  "Travis-API-Version": "3",
+  "Authorization": `token ${process.env.TRAVIS_API_TOKEN}`,
+};
+got.post(`https://api.travis-ci.org/repo/Barnstorm-Online%2FMobile/requests`, {
+  headers: headers,
+  body: JSON.stringify({
+    request: {
+      message: `Mobile Build - ${pkg.version}`,
+      branch: 'master',
+    },
+  }),
+})
+  .then(got.post(`https://api.travis-ci.org/repo/Barnstorm-Online%2FDesktop/requests`, {
+    headers: headers,
+    body: JSON.stringify({
+      request: {
+        message: `Desktop Build: ${pkg.version}`,
+        branch: 'master',
+      },
+    }),
+  }))
+  .then(() => {
+    console.log("Triggered builds");
+  })
+  .catch((err) => {
+    console.error(err);
+
+    process.exit(-1);
+  });
