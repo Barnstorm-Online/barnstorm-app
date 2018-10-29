@@ -2,6 +2,9 @@ sudo: false
 language: node_js
 node_js:
 - '8'
+env:
+  global:
+  - CC_TEST_REPORTER_ID=c0a3f723a87374b1af228112447f1058cf3537f0a468f56ca7263141d08a4ca4
 cache:
   yarn: true
   directories:
@@ -12,14 +15,21 @@ cache:
 before_deploy:
 - git config --local user.name "Michael J Feher"
 - git config --local user.email "github@phearzero.com"
-- zip -r ~/dist/cache/spa-mat.zip dist/spa-mat
-- zip -r ~/dist/cache/spa-ios.zip dist/spa-ios
-- zip -r ~/dist/cache/ssr-mat.zip dist/ssr-mat
-- zip -r ~/dist/cache/ssr-ios.zip dist/ssr-ios
+- yarn build -t mat
+- yarn build -t ios
+- yarn build-ssr
+- yarn build-pwa
+#- zip -r ~/dist/cache/spa-mat.zip dist/spa-mat
+#- zip -r ~/dist/cache/spa-ios.zip dist/spa-ios
+#- zip -r ~/dist/cache/ssr-mat.zip dist/ssr-mat
+#- zip -r ~/dist/cache/ssr-ios.zip dist/ssr-ios
 - ./bin/build_hook
-env:
-  global:
-  - CC_TEST_REPORTER_ID=c0a3f723a87374b1af228112447f1058cf3537f0a468f56ca7263141d08a4ca4
+
+before_install:
+  - curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version 1.10.1
+  - export PATH="$HOME/.yarn/bin:$PATH"
+install:
+  - yarn
 jobs:
   include:
   - stage: Tests
@@ -31,40 +41,15 @@ jobs:
     after_script:
     - ./cc-test-reporter format-coverage -t lcov -o coverage/codeclimate.json test/coverage/lcov.info
     - if [[ "$TRAVIS_TEST_RESULT" == 0 ]]; then ./cc-test-reporter upload-coverage; fi
-    before_install:
-    - curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version 1.10.1
-    - export PATH="$HOME/.yarn/bin:$PATH"
-    install:
-    - yarn
   - name: Integration Tests
     script: echo Ok
-    before_install:
-    - curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version 1.10.1
-    - export PATH="$HOME/.yarn/bin:$PATH"
-    install:
-    - yarn
-  - stage: Build-Sanity
-    name: Single Page, Server Side Renderer and Progressive App
-    before_install:
-    - curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version 1.10.1
-    - export PATH="$HOME/.yarn/bin:$PATH"
-    install:
-    - yarn
-    script:
-    - yarn build -t mat
-    - yarn build -t ios
-    - yarn build-ssr
-    - yarn build-pwa
-  - stage: Deploy
-    name: Deploy to Github Releases
-    script: echo "Deploying to GitHub releases ..."
-    if: branch = master
-    deploy:
-      skip_cleanup: true
-      provider: releases
-      api_key:
-        secure: IsRZXD/d/LK/4AcG+GNgg+3bvn29jklYEyatYW7J+amHyC9p+p1wOaQTczj78k7hYBcsQAosziByvUOD7/xtVfiqukoLLo8o7I7RGaAMoOLaQEi/iYgCNRwrU+/al/q7dImZoDQD34ED1k2tyx2UubkwnGfCRsbjisKmwWQVHsfCnMBXlx5i62jEh3zZvxIp2KwXLuH6B1hx95Ryy5lmR8+reV5mySeRVC5QcoQgTBmnOraztSEcFq6AtpQxGaFuj+rSrqYdOYS8LLsLd4jFSUzN7Lfogi3wE20khiAyULIyGTG7wJP5BpoP1eLqdGBmPUmFsgD7662WzOfJtn82UpWs68F3F7WNocUXkzFuwrpDNCcwTSXwON/bhL1Gh2g/IhJBKFqFVY8vq0io2pC+38lfegk8pq8HLAybkSWTlcwiai5Mhy5CpMKUevV5C9Ws401zs5o/nVgLrmqC9f8NbikK0LoE6f7l95/QtVt6Q4qYYxrhYQ8Jn31Mprbyz9mAPFyrDwO2gIHbZlTKq2ZUhr2vfV45Bd5TxfFLiyUW40ocrYQWajbXuyNkAsCGr5sQuWdXmqs7jJGKu0g5fz5IGNQ7FqT/9HTQ8e3B8Aw+Z/bSAmsWveJ67HnjCI3mQ9POGGDDcMxE9a9flTns/svrlED7ZXsbJTRNrdXHJvuArjQ=
-      file_glob: true
-      file: ~/dist/cache/*.zip
-      on:
-        branches: master
+
+deploy:
+  skip_cleanup: true
+  provider: releases
+  api_key:
+    secure: IsRZXD/d/LK/4AcG+GNgg+3bvn29jklYEyatYW7J+amHyC9p+p1wOaQTczj78k7hYBcsQAosziByvUOD7/xtVfiqukoLLo8o7I7RGaAMoOLaQEi/iYgCNRwrU+/al/q7dImZoDQD34ED1k2tyx2UubkwnGfCRsbjisKmwWQVHsfCnMBXlx5i62jEh3zZvxIp2KwXLuH6B1hx95Ryy5lmR8+reV5mySeRVC5QcoQgTBmnOraztSEcFq6AtpQxGaFuj+rSrqYdOYS8LLsLd4jFSUzN7Lfogi3wE20khiAyULIyGTG7wJP5BpoP1eLqdGBmPUmFsgD7662WzOfJtn82UpWs68F3F7WNocUXkzFuwrpDNCcwTSXwON/bhL1Gh2g/IhJBKFqFVY8vq0io2pC+38lfegk8pq8HLAybkSWTlcwiai5Mhy5CpMKUevV5C9Ws401zs5o/nVgLrmqC9f8NbikK0LoE6f7l95/QtVt6Q4qYYxrhYQ8Jn31Mprbyz9mAPFyrDwO2gIHbZlTKq2ZUhr2vfV45Bd5TxfFLiyUW40ocrYQWajbXuyNkAsCGr5sQuWdXmqs7jJGKu0g5fz5IGNQ7FqT/9HTQ8e3B8Aw+Z/bSAmsWveJ67HnjCI3mQ9POGGDDcMxE9a9flTns/svrlED7ZXsbJTRNrdXHJvuArjQ=
+  file_glob: true
+  file: /home/travis/dist/cache/*.zip
+  on:
+    branches: master
